@@ -1,5 +1,10 @@
-﻿using DBTest.Model;
+﻿using DB;
+using DB.Extensions;
+using DBTest.Model;
+using DBTest.Tools;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace DBTest
 {
@@ -27,10 +32,34 @@ namespace DBTest
             var table = db.AddTable<TableStyles>();
             db.Fill();
 
+            Print(table);
+
+
+            var row = table.NewRow();
+            row.Name = "test";
+            row.Weight = -1;
+            table.AddRow(row);
+            db.Update();
+
+            Print(table);
+        }
+
+        static void Print(TableStyles table)
+        {
+            var colHeaders = new List<string>();
+            table.Cols.ForEach(x => colHeaders.Add(x.Name));
+
+            var printer = new TablePrinter();
+            printer.SetHeaders(colHeaders.ToArray());
+
             foreach (var row in table.Rows)
             {
-                Console.WriteLine(row.Name);
+                var cols = new List<string>();
+                table.Cols.ForEach(x => cols.Add(row.GetValueString(x)));
+                printer.AddRow(cols.ToArray());
             }
+
+            Console.WriteLine(printer.ToString());
         }
     }
 }

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Text.RegularExpressions;
 
 namespace DB
 {
@@ -22,11 +23,10 @@ namespace DB
         }
         #endregion
 
-        public List<Query> Queries;
+        public List<QueryGroup> Queries;
         private MySqlConnection _connection;
         private MySqlTransaction _transaction;
         private Exception _exceptionTransaction;
-
 
         /**********************************************
         CONNECTIONS
@@ -116,13 +116,74 @@ namespace DB
 
             cmd.CommandText = query.SQL;
             cmd.CommandType = query.CommandType;
+            cmd.Connection = _connection;
 
-            foreach (var param in cmd.Parameters)
+            if (query.Parameters != null)
             {
-                cmd.Parameters.Add(param);
+                foreach (var param in query.Parameters)
+                {
+                    if (param.IsDBTypeDefined)
+                    {
+                        var p = new MySqlParameter();
+                        p.ParameterName = param.Name;
+                        p.Value = param.Value;
+                        p.MySqlDbType = param.DbType;
+                        cmd.Parameters.Add(p);
+                    }
+                    else
+                    {
+                        cmd.Parameters.AddWithValue(param.Name, param.Value);
+                    }
+
+
+                }
             }
 
             return cmd;
+        }
+
+        /**********************************************
+        QUERY PROCESSING
+        **********************************************/
+        private bool HasNoQueries()
+        {
+            return Queries == null || Queries.Count == 0;
+        }
+
+        private void QueriesInstanceIfNull()
+        {
+            if (Queries == null) Queries = new List<QueryGroup>();
+        }
+
+        internal void ExecuteQueries()
+        {
+            if (HasNoQueries()) return;
+
+            foreach (var group in Queries)
+            {
+                if (group.MergeQueries)
+                {
+                    ExecuteNonQuery(group.MergedQuery);
+                }
+                else
+                {
+                    foreach (var query in group.Queries)
+                    {
+                        ExecuteNonQuery(query);
+                    }
+                }
+            }
+        }
+
+        public void AddQuery(Query query)
+        {
+            QueriesInstanceIfNull();
+            Queries.Add(new QueryGroup(query));
+        }
+        public void AddQuery(QueryGroup query)
+        {
+            QueriesInstanceIfNull();
+            Queries.Add(query);
         }
 
         /**********************************************

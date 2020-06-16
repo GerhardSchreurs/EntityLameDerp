@@ -47,5 +47,17 @@ namespace Extensions
 
             return s;
         }
+
+        public static string StripFirstChar(this string s, string strip)
+        {
+            if (s == null) return null;
+
+            if (s.StartsWith(strip, StringComparison.InvariantCulture))
+            {
+                return s.Substring(strip.Length);
+            }
+
+            return s;
+        }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using DB;
 using DB.Attributes;
+using MySql.Data.MySqlClient;
 using System;
 using System.Data;
 
@@ -18,19 +19,19 @@ namespace DBTest.Model
             Weight = SetSByte(row, 4);
         }
 
-        [Col(IsAutoIncrement = true, IsPrimaryKey = true)]
+        [Col(MySqlDbType.Int16, IsAutoIncrement = true, IsPrimaryKey = true)]
         public Int16 Style_id;
 
-        [Col]
+        [Col(MySqlDbType.Int16)]
         public Int16? Alt_style_id;
 
-        [Col]
+        [Col(MySqlDbType.Int16)]
         public Int16? Parent_style_id;
 
-        [Col]
+        [Col(MySqlDbType.VarChar)]
         public string Name;
 
-        [Col]
+        [Col(MySqlDbType.Byte)]
         public sbyte Weight;
     }
 }

@@ -1,4 +1,5 @@
 ﻿
+using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -23,12 +24,20 @@ namespace DB.Attributes
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
     public class ColAttribute : Attribute
     {
-        public ColAttribute([CallerMemberName] string propertyName = null)
+        public ColAttribute(MySqlDbType type)
         {
+            DBType = type;
         }
 
         private bool _isPrimaryKey;
         private bool _isAutoIncrement;
+        private MySqlDbType _type;
+
+        public MySqlDbType DBType
+        {
+            get => _type;
+            set => _type = value;
+        }
 
         public bool IsPrimaryKey
         {
