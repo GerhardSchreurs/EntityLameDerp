@@ -14,12 +14,16 @@ using TMCWorkbench.Extensions;
 namespace DB
 {
     public interface ITable
-    { 
+    {
         //private void ColAdd(MemberInfo member, bool isPrimaryKey, bool isAutoIncrement);
+
+        string TableName { get; set; }
 
         void Fill();
         void Update();
-        string TableName { get; set; }
+        void TransactionBegin();
+        void TransactionCommit();
+
 
         //List<Row> DataRows { get; private set; }
 
@@ -32,6 +36,7 @@ namespace DB
         private Column ColPK;
         public List<R> Rows = new List<R>();
         private List<R> RowsOld = new List<R>();
+        public List<Column> ColsNonPK = new List<Column>();
         public List<Column> Cols = new List<Column>();
         public string TableName { get; set; }
 
@@ -69,7 +74,7 @@ namespace DB
                 {
                     var rowOld = RowsOld[i];
 
-                    foreach (var col in Cols)
+                    foreach (var col in ColsNonPK)
                     {
                         var newValue = row.GetValue(col);
                         var oldValue = rowOld.GetValue(col);
@@ -128,10 +133,10 @@ namespace DB
                 var query = new Query();
                 var sql = $"UPDATE {TableName} SET ";
 
-                for (var i = 0; i < Cols.Count; i++)
+                for (var i = 0; i < ColsNonPK.Count; i++)
                 {
-                    query.AddParam($"@update_id{i}", row.GetValue(Cols[i]));
-                    sql += $"{Cols[i].Name} = @update_id{i},";
+                    query.AddParam($"@update_id{i}", row.GetValue(ColsNonPK[i]));
+                    sql += $"{ColsNonPK[i].Name} = @update_id{i},";
                 }
 
                 sql = sql.StripLastChar(",");
@@ -174,9 +179,9 @@ namespace DB
                 var columns = "";
                 var values = "";
 
-                for (var j = 0; j < Cols.Count; j++)
+                for (var j = 0; j < ColsNonPK.Count; j++)
                 {
-                    var col = Cols[j];
+                    var col = ColsNonPK[j];
 
                     columns += col.Name + ",";
                     values += $"@insert_id{rowIndex}_{j},";
@@ -248,14 +253,20 @@ namespace DB
         **********************************************/
         private void ColAdd(MemberInfo member, DBType type, bool isPrimaryKey, bool isAutoIncrement)
         {
+            Column column;
+
             if (isPrimaryKey)
             {
-                ColPK = new Column(member, true, isAutoIncrement, type);
+                column = new Column(member, true, isAutoIncrement, type);
+                ColPK = column;
             }
             else
             {
-                Cols.Add(new Column(member, false, false, type));
+                column = new Column(member, false, false, type);
+                ColsNonPK.Add(column);
             }
+
+            Cols.Add(column);
         }
 
         /**********************************************
@@ -307,6 +318,16 @@ namespace DB
         private R GetOldRowById(int id)
         {
             return RowsOld.Where(x => x.GetValueInt32(ColPK) == id).FirstOrNull();
+        }
+
+        public void TransactionBegin()
+        {
+            _exe.TransactionBegin();
+        }
+
+        public void TransactionCommit()
+        {
+            _exe.TransactionCommit();
         }
     }
 }

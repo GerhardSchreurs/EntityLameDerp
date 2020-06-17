@@ -48,6 +48,15 @@ namespace DB
             Tables.ForEach(t => t.Update());
         }
 
+        public void TransactionBegin()
+        {
+            Tables.ForEach(t => t.TransactionBegin());
+        }
+
+        public void TransactionCommit()
+        {
+            Tables.ForEach(t => t.TransactionCommit());
+        }
 
 
         public string ConnectionString

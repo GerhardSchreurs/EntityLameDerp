@@ -30,13 +30,20 @@ namespace DBTest
             db.ConnectionString = config.ConnectionString;
 
             var table = db.AddTable<TableStyles>();
+
+            db.TransactionBegin();
             db.Fill();
 
             Print(table);
 
             //table.DeleteRow(table.Rows.Last());
 
-            table.Rows[0].Name = "test";
+            var row = table.NewRow();
+            row.Name = "test2";
+            row.Weight = -1;
+            table.AddRow(row);
+            table.DeleteRow(table.Rows.Last());
+            table.Rows.Last().Name = "xxx";
 
             //var row = table.NewRow();
             //row.Name = "test2";
@@ -46,6 +53,8 @@ namespace DBTest
 
             db.Update();
             db.Fill();
+
+            db.TransactionCommit();
 
             Print(table);
         }
