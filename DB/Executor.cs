@@ -122,20 +122,18 @@ namespace DB
             {
                 foreach (var param in query.Parameters)
                 {
-                    if (param.IsDBTypeDefined)
+                    if (param.DBType != DBType.None)
                     {
                         var p = new MySqlParameter();
                         p.ParameterName = param.Name;
                         p.Value = param.Value;
-                        p.MySqlDbType = param.DbType;
+                        p.MySqlDbType = (MySqlDbType)((int)param.DBType);
                         cmd.Parameters.Add(p);
                     }
                     else
                     {
                         cmd.Parameters.AddWithValue(param.Name, param.Value);
                     }
-
-
                 }
             }
 

@@ -1,9 +1,7 @@
 ﻿using Extensions;
 using Force.DeepCloner;
-using MySql.Data.MySqlClient;
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -47,7 +45,9 @@ namespace DB
             {
                 foreach (var param in query.Parameters)
                 {
-                    sql = Regex.Replace(sql, $"({param.Name})([,|\\)\\ ])", m => $"{GetMergedParameterName(param)}{m.Groups[2].Value}");
+                    //sql = Regex.Replace(sql, $"({param.Name})([,|\\)\\ ])", m => $"{GetMergedParameterName(param)}{m.Groups[2].Value}");
+                    //({param.Name})([ |,|;|\\)])
+                    sql = Regex.Replace(sql, $"({param.Name})([ |,|;|\\)])", m => $"{GetMergedParameterName(param)}{m.Groups[2].Value}");
                 }
             }
 
@@ -106,19 +106,17 @@ namespace DB
             Name = name;
             Value = value;
         }
-        public Parameter(MySqlDbType type, string name, object value)
+        public Parameter(string name, object value, DBType type)
         {
             Name = name;
             Value = value;
-            DbType = type;
-            IsDBTypeDefined = true;
+            DBType = type;
         }
 
         public string Name;
         public object Value;
         public ParameterDirection Direction = ParameterDirection.Input;
-        public bool IsDBTypeDefined;
-        public MySqlDbType DbType;
+        public DBType DBType = DBType.None;
     }
 
 
@@ -150,17 +148,16 @@ namespace DB
             Parameters.Add(new Parameter(name, value));
         }
 
-        public void AddParam(MySqlDbType type, string name, object value)
+        public void AddParam(string name, object value, DBType type)
         {
-            Parameters.Add(new Parameter(type, name, value));
+            Parameters.Add(new Parameter(name, value, type));
         }
 
-
-        public void AddParamMustRenameThis(string name, MySqlDbType type = MySqlDbType.VarChar)
+        public void AddParamMustRenameThis(string name, DBType type = DBType.VarChar)
         {
             var param = new Parameter();
             param.Name = name;
-            param.DbType = type;
+            param.DBType = type;
             param.Direction = ParameterDirection.Output;
 
             Parameters.Add(param);

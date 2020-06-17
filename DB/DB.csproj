@@ -5,16 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="RowOld.cs" />
-    <Compile Remove="TableOld.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="RowOld.cs" />
-    <None Include="TableOld.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="DeepCloner" Version="0.10.2" />
     <PackageReference Include="MySql.Data" Version="8.0.20" />
   </ItemGroup>

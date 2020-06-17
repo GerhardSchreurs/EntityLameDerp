@@ -34,12 +34,18 @@ namespace DBTest
 
             Print(table);
 
+            //table.DeleteRow(table.Rows.Last());
 
-            var row = table.NewRow();
-            row.Name = "test";
-            row.Weight = -1;
-            table.AddRow(row);
+            table.Rows[0].Name = "test";
+
+            //var row = table.NewRow();
+            //row.Name = "test2";
+            //row.Weight = -1;
+            //table.AddRow(row);
+            //db.Update();
+
             db.Update();
+            db.Fill();
 
             Print(table);
         }

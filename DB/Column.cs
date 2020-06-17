@@ -8,7 +8,7 @@ namespace DB
 {
     public class Column
     {
-        public Column(MemberInfo member, MySqlDbType type, bool isPrimaryKey, bool isAutoIncrement)
+        public Column(MemberInfo member, bool isPrimaryKey = false, bool isAutoIncrement = false, DBType type = DBType.None)
         {
             DBType = type;
             Member = member;
@@ -17,7 +17,7 @@ namespace DB
             IsAutoIncrement = isAutoIncrement;
         }
 
-        public MySqlDbType DBType;
+        public DBType DBType;
         public string Name;
         public MemberInfo Member { get; set; }
         public bool IsPrimaryKey { get; set; }

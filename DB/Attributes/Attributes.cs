@@ -24,16 +24,15 @@ namespace DB.Attributes
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
     public class ColAttribute : Attribute
     {
-        public ColAttribute(MySqlDbType type)
+        public ColAttribute()
         {
-            DBType = type;
         }
 
         private bool _isPrimaryKey;
         private bool _isAutoIncrement;
-        private MySqlDbType _type;
+        private DBType _type = DBType.None;
 
-        public MySqlDbType DBType
+        public DBType DBType
         {
             get => _type;
             set => _type = value;

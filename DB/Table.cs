@@ -103,7 +103,7 @@ namespace DB
             var rows = GetRowsDeleted();
             if (!rows.Any()) return;
 
-            var query = new Query($"DELETE FROM {TableName} WHERE {ColPK.Name} IN (@ids);");
+            var query = new Query($"DELETE FROM {TableName} WHERE {ColPK.Name} IN (@Deleted_Ids);");
             var ids = new List<object>();
 
             foreach (var row in rows)
@@ -160,7 +160,7 @@ namespace DB
             if (retrieveIds)
             {
                 queryPreID.SQL = $"SELECT MAX({ColPK.Name}) INTO @FIRST_INSERT_ID FROM {TableName};";
-                queryPreID.AddParamMustRenameThis("@FIRST_INSERT_ID", MySql.Data.MySqlClient.MySqlDbType.Int32);
+                queryPreID.AddParamMustRenameThis("@FIRST_INSERT_ID", DBType.Int32);
                 _exe.AddQuery(queryPreID);
             }
 
@@ -181,7 +181,7 @@ namespace DB
                     columns += col.Name + ",";
                     values += $"@insert_id{rowIndex}_{j},";
 
-                    query.AddParam(col.DBType, $"@insert_id{rowIndex}_{j}", row.GetValue(col));
+                    query.AddParam($"@insert_id{rowIndex}_{j}", row.GetValue(col), col.DBType);
                 }
 
                 columns = columns.StripLastChar(",");
@@ -246,15 +246,15 @@ namespace DB
         /**********************************************
         COLUMNS
         **********************************************/
-        private void ColAdd(MemberInfo member, MySqlDbType type, bool isPrimaryKey, bool isAutoIncrement)
+        private void ColAdd(MemberInfo member, DBType type, bool isPrimaryKey, bool isAutoIncrement)
         {
             if (isPrimaryKey)
             {
-                ColPK = new Column(member, type, isPrimaryKey, isAutoIncrement);
+                ColPK = new Column(member, true, isAutoIncrement, type);
             }
             else
             {
-                Cols.Add(new Column(member, type, isPrimaryKey, isAutoIncrement));
+                Cols.Add(new Column(member, false, false, type));
             }
         }
 
