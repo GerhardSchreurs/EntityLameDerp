@@ -3,16 +3,19 @@ using System.Configuration;
 
 namespace DBTest.Tools
 {
-    public class ConfigReader
+    public class Configurator
     {
         public string ConnectionString;
+        public string BasePath;
 
-        public ConfigReader(string path)
+        public Configurator(string path)
         {
             var basePath = Environment.CurrentDirectory;
             var projectName = System.Reflection.Assembly.GetEntryAssembly().GetName().Name;
             basePath = basePath.Substring(0, basePath.LastIndexOf(projectName));
-            path = basePath + projectName + "\\" + path;
+            BasePath = basePath + projectName;
+
+            path = BasePath + "\\" + path;
 
             try
             {

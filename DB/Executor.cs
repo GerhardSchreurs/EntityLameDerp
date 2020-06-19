@@ -2,8 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.Common;
-using System.Text.RegularExpressions;
 
 namespace DB
 {
@@ -143,6 +141,11 @@ namespace DB
         /**********************************************
         QUERY PROCESSING
         **********************************************/
+        public void ClearQueries()
+        {
+            Queries = null;
+        }
+
         private bool HasNoQueries()
         {
             return Queries == null || Queries.Count == 0;
@@ -241,6 +244,84 @@ namespace DB
             }
 
             return returnValue;
+        }
+
+        public MySqlDataReader ExecuteReader(Query query)
+        {
+            MySqlDataReader sqlDataReader = null;
+
+            using (var cmd = QueryToCommand(query))
+            {
+                if (TransactionActive)
+                {
+                    cmd.Transaction = _transaction;
+
+                    try
+                    {
+                        sqlDataReader = cmd.ExecuteReader();
+                    }
+                    catch (Exception ex)
+                    {
+                        TransactionRollback(ex);
+                    }
+                }
+                else
+                {
+                    sqlDataReader = cmd.ExecuteReader();
+                }
+            }
+
+            return sqlDataReader;
+        }
+
+        public bool ExecuteQueryHasRows(Query query)
+        {
+            var returnValue = false;
+
+            using (var cmd = QueryToCommand(query))
+            {
+                if (TransactionActive)
+                {
+                    cmd.Transaction = _transaction;
+
+                    try
+                    {
+                        returnValue =  cmd.ExecuteReader().HasRows;
+                    }
+                    catch (Exception ex)
+                    {
+                        TransactionRollback(ex);
+                    }
+                }
+                else
+                {
+                    cmd.Connection.Open();
+                    returnValue = cmd.ExecuteReader().HasRows;
+                    cmd.Connection.Close();
+                }
+            }
+
+            return returnValue;
+        }
+
+        public int ExecuteNonQuery(string sql, int returnValue = -1)
+        {
+            return ExecuteNonQuery(new Query(sql), returnValue);
+        }
+
+        public object ExecuteScalar(string sql, object returnValue = null)
+        {
+            return ExecuteScalar(new Query(sql), returnValue);
+        }
+
+        public MySqlDataReader ExecuteReader(string sql)
+        {
+            return ExecuteReader(new Query(sql));
+        }
+
+        public bool ExecuteQueryHasRows(string sql)
+        {
+            return ExecuteQueryHasRows(new Query(sql));
         }
     }
 }

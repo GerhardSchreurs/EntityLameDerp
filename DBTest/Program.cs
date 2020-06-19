@@ -4,6 +4,7 @@ using DBTest.Model;
 using DBTest.Tools;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace DBTest
@@ -23,16 +24,53 @@ namespace DBTest
         */
         #endregion
 
+        private static bool _setupDatabase = true;
+        private static Configurator _config;
+        private static DB.DB _db = DB.DB.Instance();
+        private static Executor _exe = Executor.Instance();
+
+        private static void Init()
+        {
+            _config = new Configurator("Private.config");
+            _db.ConnectionString = _config.ConnectionString;
+        }
+
+
+        private static void SetupDatabase()
+        {
+            Console.WriteLine("SetupDatabase()");
+            var sqlCreate = "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'dbtest'";
+            var recreate = _exe.ExecuteQueryHasRows(sqlCreate);
+
+            if (recreate)
+            {
+                recreate = ConsoleUtils.Confirm("WARNING: DBTest already exists. Recreate?");
+            }
+
+            if (recreate)
+            {
+                var sql = File.ReadAllText($"{_config.BasePath}\\setup.sql");
+                Console.WriteLine($"SetupDatabase() => {_exe.ExecuteNonQuery(sql)}");
+                _exe.ClearQueries();
+            }
+        }
+
+
         static void Main(string[] args)
         {
-            var config = new ConfigReader("Private.config");
-            var db = DB.DB.Instance();
-            db.ConnectionString = config.ConnectionString;
+            Init();
 
-            var table = db.AddTable<TableStyles>();
+            if (_setupDatabase)
+            {
+                SetupDatabase();
+            }
 
-            db.TransactionBegin();
-            db.Fill();
+            return;
+
+            var table = _db.AddTable<TableStyles>();
+
+            _db.TransactionBegin();
+            _db.Fill();
 
             Print(table);
 
@@ -51,10 +89,10 @@ namespace DBTest
             //table.AddRow(row);
             //db.Update();
 
-            db.Update();
-            db.Fill();
+            _db.Update();
+            _db.Fill();
 
-            db.TransactionCommit();
+            _db.TransactionCommit();
 
             Print(table);
         }
