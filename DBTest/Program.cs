@@ -31,6 +31,11 @@ namespace DBTest
 
         private static void Init()
         {
+            /*******************************************************
+            NOTE: YOU MUST CREATE A DATABASE NAMED "dbtest" MANUALLY
+            SetupDatabase() SHOULD DO THE REST
+            *******************************************************/
+
             _config = new Configurator("Private.config");
             _db.ConnectionString = _config.ConnectionString;
         }
@@ -64,8 +69,6 @@ namespace DBTest
             {
                 SetupDatabase();
             }
-
-            return;
 
             var table = _db.AddTable<TableStyles>();
 
