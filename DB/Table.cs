@@ -160,12 +160,15 @@ namespace DB
             var queryPostID = new Query();
 
             queryPreID.Name = "PreID";
+            queryPreID.ExecuteMethod = QueryExecuteMethod.Scalar;
             queryPostID.Name = "PostID";
+            queryPostID.ExecuteMethod = QueryExecuteMethod.Scalar;
 
             if (retrieveIds)
             {
-                queryPreID.SQL = $"SELECT MAX({ColPK.Name}) INTO @FIRST_INSERT_ID FROM {TableName};";
-                queryPreID.AddParamMustRenameThis("@FIRST_INSERT_ID", DBType.Int32);
+                //queryPreID.SQL = $"SELECT MAX({ColPK.Name}) INTO @FIRST_INSERT_ID FROM {TableName};";
+                //queryPreID.AddParamMustRenameThis("@FIRST_INSERT_ID", DBType.Int32);
+                queryPreID.SQL = $"SELECT MAX({ColPK.Name}) FROM {TableName};";
                 _exe.AddQuery(queryPreID);
             }
 
@@ -202,17 +205,21 @@ namespace DB
 
             if (retrieveIds)
             {
-                var sql = $@"SELECT 
-                (
-                    SELECT `{ColPK.Name}` FROM `{TableName}` 
-                    WHERE {ColPK.Name} > @FIRST_INSERT_ID OR @FIRST_INSERT_ID IS NULL
-                    LIMIT 1
-                ) AS FIRST_INSERT_ID,
-                (
-	                SELECT LAST_INSERT_ID()
-                );";
+                //var sql = $@"SELECT 
+                //(
+                //    SELECT `{ColPK.Name}` FROM `{TableName}` 
+                //    WHERE {ColPK.Name} > @FIRST_INSERT_ID OR @FIRST_INSERT_ID IS NULL
+                //    LIMIT 1
+                //) AS FIRST_INSERT_ID,
+                //(
+	               // SELECT LAST_INSERT_ID()
+                //);";
 
+                var sql = $@"SELECT LAST_INSERT_ID() FROM `{TableName}`";
                 queryPostID.SQL = sql;
+
+
+
                 _exe.AddQuery(queryPostID);
             }
         }
@@ -229,6 +236,42 @@ namespace DB
             //_exe.TransactionBegin();
             _exe.ExecuteQueries();
             //_exe.TransactionCommit();
+        }
+
+        public void UpdateWithIdentity()
+        {
+            ProcessRowsDeleted();
+            ProcessRowsUpdated();
+            ProcessRowsInserted(true);
+
+            _exe.ExecuteQueries();
+
+            var rowsAddedCount = GetRowsAdded().Count();
+
+            if (rowsAddedCount == 0) return;
+
+            var queryPostID = _exe.GetQueryByName("PostID");
+            int postID = 0;
+
+            if (queryPostID.Value.IsNumeric())
+            {
+                postID = Convert.ToInt32(queryPostID.Value);
+            }
+
+            if (postID < 1)
+            {
+                throw new Exception("Cannot get identity counter");
+            }
+            
+            var counter = postID;
+            foreach (var row in GetRowsAdded().Reverse())
+            {
+                row.SetValueInt32(ColPK, counter);
+                row.DataRowState = DataRowState.Unchanged; //TODO, think about this
+                counter--;
+            }
+
+            _exe.ClearQueries();
         }
 
         /* REST */

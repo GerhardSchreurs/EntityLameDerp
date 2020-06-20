@@ -9,12 +9,11 @@ namespace DB
 {
     public class QueryGroup
     {
-        public List<Query> Queries = new List<Query>();
-
         private string _paramGroupName = string.Empty;
+        public List<Query> Queries = new List<Query>();
         public bool MergeQueries = true;
 
-        public QueryGroup(string paramGroupName)
+        public QueryGroup(string paramGroupName = "")
         {
             _paramGroupName = paramGroupName;
         }
@@ -31,6 +30,12 @@ namespace DB
 
         private string GetMergedParameterName(Parameter parameter)
         {
+            if (_paramGroupName == string.Empty)
+            {
+                return parameter.Name;
+
+            }
+
             return $"@{_paramGroupName}_{parameter.Name.StripFirstChar("@")}";
         }
 
@@ -40,6 +45,8 @@ namespace DB
             Queries.ForEach(x => builder.AppendLine(x.SQL));
             var sql = builder.ToString();
 
+            if (_paramGroupName == string.Empty) return sql;
+
             //Replace parameter names
             foreach (var query in Queries)
             {
@@ -47,6 +54,7 @@ namespace DB
                 {
                     //sql = Regex.Replace(sql, $"({param.Name})([,|\\)\\ ])", m => $"{GetMergedParameterName(param)}{m.Groups[2].Value}");
                     //({param.Name})([ |,|;|\\)])
+
                     sql = Regex.Replace(sql, $"({param.Name})([ |,|;|\\)])", m => $"{GetMergedParameterName(param)}{m.Groups[2].Value}");
                 }
             }
@@ -124,7 +132,10 @@ namespace DB
     {
         public string Name;
         public string SQL;
+        public object Value;
         public CommandType CommandType = CommandType.Text;
+        public QueryExecuteMethod ExecuteMethod = QueryExecuteMethod.NonQuery;
+
         //public List<MySqlParameter> Parameters = new List<MySqlParameter>();
         public List<Parameter> Parameters = new List<Parameter>();
 
@@ -158,9 +169,16 @@ namespace DB
             var param = new Parameter();
             param.Name = name;
             param.DBType = type;
-            param.Direction = ParameterDirection.Output;
+            param.Direction = ParameterDirection.Input;
 
             Parameters.Add(param);
         }
+    }
+
+    public enum QueryExecuteMethod
+    {
+        NonQuery,
+        Scalar,
+        Reader
     }
 }

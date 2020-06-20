@@ -2,10 +2,13 @@
 using DB.Extensions;
 using DBTest.Model;
 using DBTest.Tools;
+using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace DBTest
 {
@@ -24,12 +27,40 @@ namespace DBTest
         */
         #endregion
 
-        private static bool _setupDatabase = true;
+        private static StackTrace _stackTrace = new StackTrace();
         private static Configurator _config;
         private static DB.DB _db = DB.DB.Instance();
         private static Executor _exe = Executor.Instance();
+        private static TableStyles _tblStyles;
 
-        private static void Init()
+        private static void DoStuff()
+        {
+            var connection = new MySqlConnection(_config.ConnectionString);
+            
+            var cmd1 = new MySqlCommand();
+            var param1 = new MySqlParameter();
+            param1.ParameterName = "@FIRST_INSERT_ID";
+            param1.DbType = System.Data.DbType.Int32;
+            param1.Direction = System.Data.ParameterDirection.Output;
+            param1.Value = 0;
+
+            cmd1.Connection = connection;
+            cmd1.CommandText = "SELECT MAX(style_id) FROM styles;";
+            cmd1.Parameters.Add(param1);
+
+            cmd1.Connection.Open();
+            var max = cmd1.ExecuteScalar();
+
+
+
+            cmd1.Connection.Close();
+
+
+        }
+
+
+
+        static void Main(string[] args)
         {
             /*******************************************************
             NOTE: YOU MUST CREATE A DATABASE NAMED "dbtest" MANUALLY
@@ -38,44 +69,23 @@ namespace DBTest
 
             _config = new Configurator("Private.config");
             _db.ConnectionString = _config.ConnectionString;
-        }
+
+            InitDatabase(true);
+            InitTables();
+            FillTables(true);
+
+            PrintTableStyles(_tblStyles);
+            Console.WriteLine("Filling dataset");
 
 
-        private static void SetupDatabase()
-        {
-            Console.WriteLine("SetupDatabase()");
-            var sqlCreate = "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'dbtest'";
-            var recreate = _exe.ExecuteQueryHasRows(sqlCreate);
-
-            if (recreate)
-            {
-                recreate = ConsoleUtils.Confirm("WARNING: DBTest already exists. Recreate?");
-            }
-
-            if (recreate)
-            {
-                var sql = File.ReadAllText($"{_config.BasePath}\\setup.sql");
-                Console.WriteLine($"SetupDatabase() => {_exe.ExecuteNonQuery(sql)}");
-                _exe.ClearQueries();
-            }
-        }
-
-
-        static void Main(string[] args)
-        {
-            Init();
-
-            if (_setupDatabase)
-            {
-                SetupDatabase();
-            }
+            return;
 
             var table = _db.AddTable<TableStyles>();
 
             _db.TransactionBegin();
             _db.Fill();
 
-            Print(table);
+            PrintTableStyles(table);
 
             //table.DeleteRow(table.Rows.Last());
 
@@ -97,11 +107,117 @@ namespace DBTest
 
             _db.TransactionCommit();
 
-            Print(table);
+            PrintTableStyles(table);
         }
 
-        static void Print(TableStyles table)
+        private static void InitTables()
         {
+            _tblStyles = _db.AddTable<TableStyles>();
+        }
+
+        private static void FillTables(bool run)
+        {
+            if (ShouldNotRun(run)) return;
+
+            _tblStyles.TransactionBegin();
+            FillTableStyles(run);
+            _tblStyles.TransactionCommit();
+        }
+
+        private static void FillTableStyles(bool run)
+        {
+            if (ShouldNotRun(run)) return;
+
+            RowStyle row;
+            var rowHard = _tblStyles.NewRow();
+            rowHard.Name = "HARD";
+            rowHard.Weight = -1;
+            _tblStyles.AddRow(rowHard);
+
+            var rowStyles = _tblStyles.NewRow();
+            rowStyles.Name = "HOUSE";
+            rowStyles.Weight = -1;
+            _tblStyles.AddRow(rowStyles);
+
+            _tblStyles.UpdateWithIdentity();
+
+            var rowHardcore = _tblStyles.NewRow();
+            rowHardcore.Name = "Hardcore";
+            rowHardcore.Parent_style_id = rowHard.Style_id;
+            rowHardcore.Weight = 3;
+            _tblStyles.AddRow(rowHardcore);
+
+            var rowSpeedCore = _tblStyles.NewRow();
+            rowSpeedCore.Name = "Speedcore";
+            rowSpeedCore.Parent_style_id = rowHard.Style_id;
+            rowSpeedCore.Weight = 3;
+            _tblStyles.AddRow(rowSpeedCore);
+
+            var rowFrenchCore = _tblStyles.NewRow();
+            rowFrenchCore.Name = "Frenchcore";
+            rowFrenchCore.Parent_style_id = rowHard.Style_id;
+            rowFrenchCore.Weight = 3;
+            _tblStyles.AddRow(rowFrenchCore);
+
+            _tblStyles.UpdateWithIdentity();
+
+            row = _tblStyles.NewRow();
+            row.Name = "Hard core";
+            row.Alt_style_id = rowHardcore.Style_id;
+            row.Weight = 3;
+            _tblStyles.AddRow(row);
+
+            row = _tblStyles.NewRow();
+            row.Name = "Speed core";
+            row.Alt_style_id = rowSpeedCore.Style_id;
+            row.Weight = 3;
+            _tblStyles.AddRow(row);
+
+            row = _tblStyles.NewRow();
+            row.Name = "French core";
+            row.Alt_style_id = rowFrenchCore.Style_id;
+            row.Weight = 3;
+            _tblStyles.AddRow(row);
+
+            _tblStyles.UpdateWithIdentity();
+
+        }
+
+        private static bool ShouldNotRun(bool param, [CallerMemberName] string callerName = "")
+        {
+            Console.WriteLine($"{callerName} : {param}");
+            return !param;
+        }
+
+        private static void PrintFunc([CallerMemberName] string callerName = "")
+        {
+            Console.WriteLine(callerName);
+        }
+
+        private static void InitDatabase(bool run)
+        {
+            if (ShouldNotRun(run)) return;
+
+            var recreate = _exe.ExecuteQueryHasRows(Queries.CheckIfDbExists);
+
+            if (recreate)
+            {
+                recreate = ConsoleUtils.Confirm("WARNING: DBTest already exists. Recreate?");
+            }
+
+            if (recreate)
+            {
+                var sql = File.ReadAllText($"{_config.BasePath}\\setup.sql");
+                Console.WriteLine($"InitDatabase() => {_exe.ExecuteNonQuery(sql)}");
+                _exe.ClearQueries();
+            }
+        }
+
+
+        static void PrintTableStyles(TableStyles table)
+        {
+            PrintFunc();
+
             var colHeaders = new List<string>();
             table.Cols.ForEach(x => colHeaders.Add(x.Name));
 

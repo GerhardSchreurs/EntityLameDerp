@@ -170,7 +170,14 @@ namespace DB
                 {
                     foreach (var query in group.Queries)
                     {
-                        ExecuteNonQuery(query);
+                        if (query.ExecuteMethod == QueryExecuteMethod.NonQuery)
+                        {
+                            query.Value = ExecuteNonQuery(query);
+                        }
+                        else
+                        {
+                            query.Value = ExecuteScalar(query);
+                        }
                     }
                 }
             }
@@ -179,12 +186,28 @@ namespace DB
         public void AddQuery(Query query)
         {
             QueriesInstanceIfNull();
-            Queries.Add(new QueryGroup(query));
+
+            var queryGroup = new QueryGroup();
+            queryGroup.MergeQueries = false;
+            queryGroup.AddQuery(query);
+            Queries.Add(queryGroup);
         }
         public void AddQuery(QueryGroup query)
         {
             QueriesInstanceIfNull();
             Queries.Add(query);
+        }
+        public Query GetQueryByName(string name)
+        {
+            foreach (var queryGroup in Queries)
+            {
+                foreach (var q in queryGroup.Queries)
+                {
+                    if (q.Name == name) return q;
+                }
+            }
+
+            return null;
         }
 
         /**********************************************

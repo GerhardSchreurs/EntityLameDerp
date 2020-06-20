@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TMCWorkbench.Extensions
+namespace Extensions
 {
     public static class ObjectExtensions
     {
@@ -17,7 +17,7 @@ namespace TMCWorkbench.Extensions
         {
             if (value == null) { return false; }
             var s = value.ToString();
-            return IsNumeric(s);
+            return StringExtensions.IsNumeric(s);
         }
 
     }

@@ -4,6 +4,8 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 
+DROP DATABASE IF EXISTS `dbtest`;
+
 CREATE DATABASE IF NOT EXISTS `dbtest` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */;
 USE `dbtest`;
 
@@ -20,6 +22,7 @@ CREATE TABLE IF NOT EXISTS `styles` (
   CONSTRAINT `rel_styles_alt_style_id` FOREIGN KEY (`alt_style_id`) REFERENCES `styles` (`style_id`),
   CONSTRAINT `rel_styles_parent_style_id` FOREIGN KEY (`parent_style_id`) REFERENCES `styles` (`style_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=77 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `styles` AUTO_INCREMENT = 1;
 
 CREATE TABLE IF NOT EXISTS `composers` (
   `composer_id` int(11) NOT NULL AUTO_INCREMENT,
