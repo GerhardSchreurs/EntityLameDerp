@@ -20,6 +20,11 @@ namespace DB
 
     public class Row : IRow
     {
+        public Row()
+        {
+
+        }
+
         private DataRowState _dataRowState;
         
         public DataRowState DataRowState { 
@@ -41,6 +46,12 @@ namespace DB
         {
             if (row.IsNull(index)) { return null; }
             return SetByte(row, index);
+        }
+
+        //int
+        public int SetInt32(DataRow row, int index)
+        {
+            return Converter.ToInt32(row[index]);
         }
 
         //smallint

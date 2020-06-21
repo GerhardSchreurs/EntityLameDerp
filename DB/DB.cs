@@ -50,14 +50,13 @@ namespace DB
 
         public void TransactionBegin()
         {
-            Tables.ForEach(t => t.TransactionBegin());
+            _exe.TransactionBegin();
         }
 
         public void TransactionCommit()
         {
-            Tables.ForEach(t => t.TransactionCommit());
+            _exe.TransactionCommit();
         }
-
 
         public string ConnectionString
         {

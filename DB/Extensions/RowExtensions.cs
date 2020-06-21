@@ -62,10 +62,23 @@ namespace DB.Extensions
             return Converter.ToInt32(GetValue(row, col));
         }
 
+        public static void SetValueInt32(this Row row, Column col, object value)
+        {
+            var number = Convert.ToInt32(value);
+            SetValueInt32(row, col, number);
+        }
+
         public static void SetValueInt32(this Row row, Column col, int value)
         {
+            var oldValue = row.GetType().GetField(col.Member.Name).GetValue(row);
+
             var fieldInfo = row.GetType().GetField(col.Member.Name);
             SetFieldValue(fieldInfo, row, value);
+
+            var newValue = row.GetType().GetField(col.Member.Name).GetValue(row);
+
+            Console.WriteLine();
+
 
             //var fieldInfo = row.GetType().GetField(col.Member.Name);
             //var fieldType = fieldInfo.FieldType;

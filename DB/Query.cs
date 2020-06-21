@@ -1,5 +1,7 @@
 ﻿using Extensions;
 using Force.DeepCloner;
+using Google.Protobuf.WellKnownTypes;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Text;
@@ -12,6 +14,7 @@ namespace DB
         private string _paramGroupName = string.Empty;
         public List<Query> Queries = new List<Query>();
         public bool MergeQueries = true;
+        public QueryExecuteMethod ExecuteMethod = QueryExecuteMethod.NonQuery;
 
         public QueryGroup(string paramGroupName = "")
         {
@@ -121,10 +124,26 @@ namespace DB
             DBType = type;
         }
 
+        public Parameter(string name, Func<object> func, DBType type)
+        {
+            Name = name;
+            _func = func;
+            DBType = type;
+        }
+
+        private Func<object> _func;
         public string Name;
         public object Value;
         public ParameterDirection Direction = ParameterDirection.Input;
         public DBType DBType = DBType.None;
+
+        internal void Update()
+        {
+            if (_func != null)
+            {
+                Value = _func();
+            }
+        }
     }
 
 
@@ -132,7 +151,19 @@ namespace DB
     {
         public string Name;
         public string SQL;
-        public object Value;
+        private object _value;
+        private Action _func;
+
+        public object Value
+        {
+            get => _value;
+            set
+            {
+                _value = value;
+                if (_func != null) _func.Invoke();
+            }
+        }
+
         public CommandType CommandType = CommandType.Text;
         public QueryExecuteMethod ExecuteMethod = QueryExecuteMethod.NonQuery;
 
@@ -172,6 +203,16 @@ namespace DB
             param.Direction = ParameterDirection.Input;
 
             Parameters.Add(param);
+        }
+
+        internal void AddRetrieveParam(string name, Func<object> func, DBType type)
+        {
+            Parameters.Add(new Parameter(name, func, type));
+        }
+
+        internal void AfterUpdate(Action func)
+        {
+            _func = func;
         }
     }
 

@@ -122,6 +122,9 @@ namespace DB
 
         void ProcessRowsUpdated()
         {
+            //Note that we can update multiple rows in one statement
+            //https://tableplus.com/blog/2018/11/how-to-update-multiple-rows-at-once-in-mysql.html
+
             var rows = GetRowsModified();
             if (!rows.Any()) return;
 
@@ -152,6 +155,59 @@ namespace DB
         }
 
         void ProcessRowsInserted(bool retrieveIds = false)
+        {
+            var rows = GetRowsAdded();
+            if (!rows.Any()) return;
+
+            var rowIndex = 0;
+            var queryGroup = new QueryGroup("INSERTED");
+
+            if (retrieveIds)
+            {
+                queryGroup.ExecuteMethod = QueryExecuteMethod.Scalar;
+            }
+
+            foreach (var row in rows)
+            {
+                var query = new Query();
+                var sql = $"INSERT INTO {TableName}";
+                var columns = "";
+                var values = "";
+
+                for (var j = 0; j < ColsNonPK.Count; j++)
+                {
+                    var col = ColsNonPK[j];
+
+                    columns += col.Name + ",";
+                    values += $"@insert_id{rowIndex}_{j},";
+
+                    query.Name = col.Name;
+                    //query.AddParam($"@insert_id{rowIndex}_{j}", row.GetValue(col), col.DBType);
+                    query.AddRetrieveParam($"@insert_id{rowIndex}_{j}", ()=> row.GetValue(col), col.DBType);
+                    query.AfterUpdate(()=> row.SetValueInt32(ColPK, query.Value));
+                }
+
+                columns = columns.StripLastChar(",");
+                values = values.StripLastChar(",");
+
+                sql = $"{sql} ({columns}) VALUES ({values});";
+
+                if (retrieveIds)
+                {
+                    sql = $"{sql} SELECT LAST_INSERT_ID();";
+                    query.ExecuteMethod = QueryExecuteMethod.Scalar;
+                    queryGroup.MergeQueries = false;
+                }
+
+                query.SQL = sql;
+                queryGroup.AddQuery(query);
+                rowIndex++;
+            }
+
+            _exe.AddQuery(queryGroup);
+        }
+
+        void ProcessRowsInsertedOLD(bool retrieveIds = false)
         {
             var rows = GetRowsAdded();
             if (!rows.Any()) return;
@@ -246,36 +302,45 @@ namespace DB
 
             _exe.ExecuteQueries();
 
-            var rowsAddedCount = GetRowsAdded().Count();
+            var rows = GetRowsAdded();
+            if (!rows.Any()) return;
 
-            if (rowsAddedCount == 0) return;
-
-            var queryPostID = _exe.GetQueryByName("PostID");
-            int postID = 0;
-
-            if (queryPostID.Value.IsNumeric())
+            foreach (var row in GetRowsAdded())
             {
-                postID = Convert.ToInt32(queryPostID.Value);
-            }
-
-            if (postID < 1)
-            {
-                throw new Exception("Cannot get identity counter");
-            }
-            
-            var counter = postID;
-            foreach (var row in GetRowsAdded().Reverse())
-            {
-                row.SetValueInt32(ColPK, counter);
-                row.DataRowState = DataRowState.Unchanged; //TODO, think about this
-                counter--;
+                row.DataRowState = DataRowState.Unchanged;
             }
 
             _exe.ClearQueries();
+
+            //var rowsAddedCount = GetRowsAdded().Count();
+
+            //if (rowsAddedCount == 0) return;
+
+            //var queryPostID = _exe.GetQueryByName("PostID");
+            //int postID = 0;
+
+            //if (queryPostID.Value.IsNumeric())
+            //{
+            //    postID = Convert.ToInt32(queryPostID.Value);
+            //}
+
+            //if (postID < 1)
+            //{
+            //    throw new Exception("Cannot get identity counter");
+            //}
+
+            //var counter = postID;
+            //foreach (var row in GetRowsAdded().Reverse())
+            //{
+            //    row.SetValueInt32(ColPK, counter);
+            //    row.DataRowState = DataRowState.Unchanged; //TODO, think about this
+            //    counter--;
+            //}
+
         }
 
         /* REST */
-        
+
         public Table()
         {
             var members = typeof(R).GetMembers().Where(x => x.DeclaringType == typeof(R)); ;

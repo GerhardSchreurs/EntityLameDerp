@@ -89,6 +89,11 @@ namespace DB
             _transaction.Rollback();
             _exceptionTransaction = ex;
             _connection.Close();
+
+            if (ex != null)
+            {
+                throw (ex);
+            }
         }
         #endregion Transactions
 
@@ -120,6 +125,8 @@ namespace DB
             {
                 foreach (var param in query.Parameters)
                 {
+                    param.Update();
+
                     if (param.DBType != DBType.None)
                     {
                         var p = new MySqlParameter();
@@ -143,6 +150,10 @@ namespace DB
         **********************************************/
         public void ClearQueries()
         {
+            if (Queries != null)
+            {
+                Queries.Clear();
+            }
             Queries = null;
         }
 
@@ -164,7 +175,14 @@ namespace DB
             {
                 if (group.MergeQueries)
                 {
-                    ExecuteNonQuery(group.MergedQuery);
+                    if (group.ExecuteMethod == QueryExecuteMethod.NonQuery)
+                    {
+                        ExecuteNonQuery(group.MergedQuery);
+                    }
+                    else
+                    {
+                        ExecuteScalar(group.MergedQuery);
+                    }
                 }
                 else
                 {

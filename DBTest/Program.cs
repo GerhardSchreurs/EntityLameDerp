@@ -31,7 +31,9 @@ namespace DBTest
         private static Configurator _config;
         private static DB.DB _db = DB.DB.Instance();
         private static Executor _exe = Executor.Instance();
+
         private static TableStyles _tblStyles;
+        private static TableComposers _tblComposers;
 
         private static void DoStuff()
         {
@@ -50,21 +52,14 @@ namespace DBTest
 
             cmd1.Connection.Open();
             var max = cmd1.ExecuteScalar();
-
-
-
             cmd1.Connection.Close();
-
-
         }
-
-
 
         static void Main(string[] args)
         {
             /*******************************************************
             NOTE: YOU MUST CREATE A DATABASE NAMED "dbtest" MANUALLY
-            SetupDatabase() SHOULD DO THE REST
+            InitDatabase() SHOULD DO THE REST
             *******************************************************/
 
             _config = new Configurator("Private.config");
@@ -74,7 +69,9 @@ namespace DBTest
             InitTables();
             FillTables(true);
 
-            PrintTableStyles(_tblStyles);
+            PrintTable(_tblStyles);
+            PrintTable(_tblComposers);
+
             Console.WriteLine("Filling dataset");
 
 
@@ -85,7 +82,7 @@ namespace DBTest
             _db.TransactionBegin();
             _db.Fill();
 
-            PrintTableStyles(table);
+            PrintTable(table);
 
             //table.DeleteRow(table.Rows.Last());
 
@@ -107,22 +104,55 @@ namespace DBTest
 
             _db.TransactionCommit();
 
-            PrintTableStyles(table);
+            PrintTable(table);
         }
 
         private static void InitTables()
         {
             _tblStyles = _db.AddTable<TableStyles>();
+            _tblComposers = _db.AddTable<TableComposers>();
         }
 
         private static void FillTables(bool run)
         {
             if (ShouldNotRun(run)) return;
 
-            _tblStyles.TransactionBegin();
+            _db.TransactionBegin();
             FillTableStyles(run);
-            _tblStyles.TransactionCommit();
+            FillTableComposers(run);
+
+            _db.TransactionCommit();
+
         }
+        private static void FillTableComposers(bool run)
+        {
+            if (ShouldNotRun(run)) return;
+
+            RowComposer row;
+
+            row = _tblComposers.NewRow();
+            row.Name = "djnonsens";
+            _tblComposers.AddRow(row);
+
+            row = _tblComposers.NewRow();
+            row.Name = "djduck";
+            _tblComposers.AddRow(row);
+
+            row = _tblComposers.NewRow();
+            row.Name = "koos";
+            _tblComposers.AddRow(row);
+
+            row = _tblComposers.NewRow();
+            row.Name = "degoede";
+            _tblComposers.AddRow(row);
+
+            row = _tblComposers.NewRow();
+            row.Name = "fubar";
+            _tblComposers.AddRow(row);
+
+            _tblComposers.Update();
+        }
+
 
         private static void FillTableStyles(bool run)
         {
@@ -159,8 +189,6 @@ namespace DBTest
             rowFrenchCore.Weight = 3;
             _tblStyles.AddRow(rowFrenchCore);
 
-            _tblStyles.UpdateWithIdentity();
-
             row = _tblStyles.NewRow();
             row.Name = "Hard core";
             row.Alt_style_id = rowHardcore.Style_id;
@@ -180,7 +208,6 @@ namespace DBTest
             _tblStyles.AddRow(row);
 
             _tblStyles.UpdateWithIdentity();
-
         }
 
         private static bool ShouldNotRun(bool param, [CallerMemberName] string callerName = "")
@@ -189,9 +216,16 @@ namespace DBTest
             return !param;
         }
 
-        private static void PrintFunc([CallerMemberName] string callerName = "")
+        private static void PrintFunc(object args, [CallerMemberName] string callerName = "")
         {
-            Console.WriteLine(callerName);
+            if (args == null)
+            {
+                Console.WriteLine($"{callerName}");
+            }
+            else
+            {
+                Console.WriteLine($"{callerName} : {args}");
+            }
         }
 
         private static void InitDatabase(bool run)
@@ -213,10 +247,9 @@ namespace DBTest
             }
         }
 
-
-        static void PrintTableStyles(TableStyles table)
+        static void PrintTable<T>(Table<T> table) where T : DB.Row, new()
         {
-            PrintFunc();
+            PrintFunc(typeof(T).FullName);
 
             var colHeaders = new List<string>();
             table.Cols.ForEach(x => colHeaders.Add(x.Name));
